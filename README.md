@@ -1,0 +1,3 @@
+# Universal Banlist: An explanation
+
+Long story short, I got fed up with having to deal with bot raids, hunting down raider ids from other servers, and a bunch of other anti-raiding tasks so I figured "Why not automate it?", so I present Universal Banlist. The entire premise is that when someone joins, the bot runs through everyone on the banlist, and if there's a user ID match, the user gets banned. The list itself is a SQLite database. This bot is being ran entirely by me, with no hosting and only moderate amounts of help as of just yet, so please be understanding of mistakes, downtime, and development. 
