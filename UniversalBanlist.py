@@ -39,7 +39,7 @@ async def on_ready():
     ''')
     # guilds = await client.fetch_guilds(limit=150).flatten()
     # print(guilds)
-    print("fuck you <3")
+    print("hi")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Time to start: ' + str((datetime.now() - botStartTime))))
     await asyncio.sleep(10)
     client.loop.create_task(rotateStatus())
@@ -48,7 +48,7 @@ async def on_ready():
 # |__)  /\  |\ | 
 # |__) /~~\ | \| 
 
-@bot.slash_command(guild_ids=guild_ids)
+@bot.slash_command(guild_ids=guild_ids, description='Bans a user by using the ID of the user. Requires a USERID, ban TYPE, and ban REASON.')
 async def ban(
     ctx,
     userid: Option(str, "Insert the ID of the user you wish to ban here.", required=True),
@@ -76,11 +76,15 @@ async def ban(
                 embed.add_field(name='Ban Info', value='Ban ID: `' + rowid + '`\nUser ID: `' + userid + '`\nBan Time: `' + bantime + '`\nType: `' + bantype + '`\nReason: `' + reason + '`', inline=False)
                 await ctx.send(embed=embed)
             else:
-                embed = discord.Embed(color = discord.Color.red())
-                embed.add_field(name='An error occured while running this command', value='This user is already in the banlist!')
+                cursor.execute(f"SELECT rowid FROM banlist WHERE user_id = {userid}")
+                result = str(cursor.fetchone()[0])
+                cursor.close()
+                db.close()
+                embed = discord.Embed(color = discord.Color.red(), title='An error occured while running this command')
+                embed.add_field(name='This user is already in the banlist!', value='Ban ID: `' + result + '`')
                 await ctx.send(embed=embed)
 
-@bot.slash_command(guild_ids=guild_ids)
+@bot.slash_command(guild_ids=guild_ids, description='Updates the TYPE and REASON information on a ban. Requires a USERID, ban TYPE, and ban REASON.')
 async def updateban(
     ctx,
     userid: Option(str, "Insert the ID of the banned user.", required=True),
@@ -93,17 +97,20 @@ async def updateban(
         cursor.execute(f"SELECT user_id FROM banlist WHERE user_id = {userid}")
         result = cursor.fetchone()
         if result is None:
-            embed = discord.Embed(color = discord.Color.red())
-            embed.add_field(name='An error occured while running this command', value='This user is not in the banlist!')
+            cursor.close()
+            db.close()
+            embed = discord.Embed(color = discord.Color.red(), title='An error occured while running this command')
+            embed.add_field(name='This user is not in the banlist!', value='If the user meets the ban requirements, make sure to ban them!')
             await ctx.send(embed=embed)
         else:
             cursor2 = db.cursor()
             cursor2.execute(f"SELECT time FROM banlist WHERE user_id = {userid}")
-            bantime = str(cursor2.fetchone())
+            bantime = str(cursor2.fetchone()[0])
+            cursor2.execute(f"SELECT rowid FROM banlist WHERE user_id = {userid}")
+            rowid = str(cursor2.fetchone()[0])
             sql = ("UPDATE banlist SET type = ?, reason = ? WHERE user_id = ?")
             val = (bantype, reason, userid)
             cursor.execute(sql, val)
-            rowid = str(cursor.lastrowid)
             db.commit()
             cursor.close()
             cursor2.close()
@@ -112,9 +119,17 @@ async def updateban(
             embed.add_field(name='Ban Info', value='Ban ID: `' + rowid + '`\nUser ID: `' + userid + '`\nBan Time: `' + bantime + '`', inline=False)
             embed.add_field(name='Updated Values', value='Type: `' + bantype + '`\nReason: `' + reason + '`', inline=False)
             await ctx.send(embed=embed)
-        
-@bot.command(pass_context=True)
-async def embedTest(ctx):
+
+@bot.slash_command(guild_ids=guild_ids, description="Shows the information regarding a user's ban. Requires a USERID.")
+async def baninfo(
+    ctx,
+    reftype: Option(str, "Choose the way you will reference the ban.", choices=["Ban ID", "User ID"], required=True),
+    userid: Option(str, "Insert the ID of the banned user.", required=True),
+    ):
+    return
+
+@bot.slash_command(guild_ids=guild_ids, description='Test an embed.')
+async def embedtest(ctx):
     embed = discord.Embed(color = discord.Color.green(), title='Successfully updated ban info!')
     embed.add_field(name='Ban Info', value='Ban ID: `' + '1' + '`\nUser ID: `' + '764195980106399825' + '`', inline=False)
     embed.add_field(name='Updated Values', value='Type: `' + 'Raider' + '`\nReason: `' + "is a bitch made coward" + '`', inline=False)
@@ -139,15 +154,15 @@ async def embedTest(ctx):
 # |  | |\ | |__)  /\  |\ | 
 # \__/ | \| |__) /~~\ | \|
 
-@bot.command(pass_context=True, aliases=['removeban', 'deleteban'])
-async def unban(ctx, user: discord.User, *messageContent):
-    msg = await ctx.fetch_message(ctx.message.id)
+# @bot.slash_command()
+# async def unban(ctx):
+#     return
 
 #       __  ___          ___ 
 # |  | |__)  |  |  |\/| |__  
 # \__/ |     |  |  |  | |___ 
 
-@bot.command(pass_context=True, aliases=['runTime', 'runDuration'])
+@bot.slash_command(guild_ids=guild_ids, description="Displays the bot's uptime.")
 async def uptime(ctx):
     startTime = datetime.now()
     runTime = startTime.replace(microsecond=0) - botStartTime.replace(microsecond=0)
@@ -159,7 +174,7 @@ async def uptime(ctx):
 # |__) | |\ | / _` 
 # |    | | \| \__> 
 
-@bot.command(pass_context=True, aliases=['lag', 'latency'])
+@bot.slash_command(guild_ids=guild_ids, description="Displays the bot's response time to Discord servers.")
 async def ping(ctx):
     botLatency = bot.latency*1000
     embed = discord.Embed(color = discord.Color.blue())
@@ -170,7 +185,7 @@ async def ping(ctx):
 # /__` |__| |  |  |  |  \ /  \ |  | |\ | 
 # .__/ |  | \__/  |  |__/ \__/ |/\| | \| 
 
-@bot.command(pass_context=True, aliases=['stop', 'kill'])
+@bot.slash_command(guild_ids=guild_ids, description="Shuts down the bot. Only usable by pinhead.")
 async def shutdown(ctx):
     if ctx.author.id == 246291288775852033:
         exit()  
