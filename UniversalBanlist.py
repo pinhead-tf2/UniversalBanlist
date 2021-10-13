@@ -107,7 +107,7 @@ async def updateban(
         else:
             cursor2 = db.cursor()
             cursor2.execute(f"SELECT time FROM banlist WHERE user_id = {userid}")
-            time = float(cursor.fetchone()[0])
+            bantime = str(cursor2.fetchone()[0])
             cursor2.execute(f"SELECT rowid FROM banlist WHERE user_id = {userid}")
             rowid = str(cursor2.fetchone()[0])
             sql = ("UPDATE banlist SET type = ?, reason = ? WHERE user_id = ?")
@@ -123,42 +123,13 @@ async def updateban(
             embed.add_field(name='Updated Values', value='Type: `' + bantype + '`\nReason: `' + reason + '`', inline=False)
             await ctx.send(embed=embed)
 
-@bot.slash_command(guild_ids=guild_ids, description="Shows the information regarding a user's ban, specifically built for searching by USERID.")
-async def searchbanuserid(
+@bot.slash_command(guild_ids=guild_ids, description="Shows the information regarding a user's ban. Requires a USERID.")
+async def baninfo(
     ctx,
+    reftype: Option(str, "Choose the way you will reference the ban.", choices=["Ban ID", "User ID"], required=True),
     userid: Option(str, "Insert the ID of the banned user.", required=True),
     ):
-    db = sqlite3.connect('banlist.sqlite')
-    cursor = db.cursor()
-    cursor.execute(f'''SELECT rowid FROM banlist WHERE user_id = {userid}''')
-    rowid = cursor.fetchone()[0]
-    if rowid is None:
-        cursor.close()
-        db.close()
-        embed = discord.Embed(color = discord.Color.red(), title='An error occured while running this command')
-        embed.add_field(name='This user is not in the banlist!', value='If the user meets the ban requirements, make sure to ban them!')
-        await ctx.send(embed=embed)
-    else:
-        # the damn thing would print the whole row as one slot in an array so i have to do this terribleness
-        cursor.execute(f'''SELECT time FROM banlist WHERE user_id = {userid}''')
-        time = float(cursor.fetchone()[0])
-        cursor.execute(f'''SELECT type FROM banlist WHERE user_id = {userid}''')
-        bantype = str(cursor.fetchone()[0])
-        cursor.execute(f'''SELECT reason FROM banlist WHERE user_id = {userid}''')
-        reason = str(cursor.fetchone()[0])
-        cursor.close()
-        db.close()
-        readabletime = str(datetime.utcfromtimestamp(time))
-        embed = discord.Embed(color = discord.Color.yellow(), title='Ban Information for ' + userid + '.')
-        embed.add_field(name='Ban Info', value='Ban ID: `' + str(rowid) + '`\nUser ID: `' + userid + '` (<@' + userid + '>)\nBan Time: <t:' + str(int(time)) + ':f> (`' + readabletime + '`)\nType: `' + bantype + '`\nReason: `' + reason + '`', inline=False)
-        await ctx.send(embed=embed)
-
-# user = await client.get_user(user_id)
-#     try:
-#         entry = await ctx.guild.get_ban(user)
-#     except discord.NotFound:
-#         await user.send(You are not in the ban list')
-#         return
+    return
 
 @bot.slash_command(guild_ids=guild_ids, description='Test an embed.')
 async def embedtest(ctx):
@@ -185,6 +156,14 @@ async def unban(ctx):
 #         if result is not None:
 #             print(result)
 #             await ctx.guild.ban(member)
+
+#            __            
+# |  | |\ | |__)  /\  |\ | 
+# \__/ | \| |__) /~~\ | \|
+
+# @bot.slash_command()
+# async def unban(ctx):
+#     return
 
 #       __  ___          ___ 
 # |  | |__)  |  |  |\/| |__  
